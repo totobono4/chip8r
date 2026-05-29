@@ -2,5 +2,9 @@
 name = "chip8r"
 version = "0.1.0"
 edition = "2024"
+authors = ["totobono4 <totobono4@outlook.fr>"]
 
 [dependencies]
+clap = { version = "4.6.1", features = ["derive"] }
+pixels = "0.17.1"
+winit = "0.30.13"
