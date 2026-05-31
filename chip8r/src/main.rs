@@ -2,10 +2,9 @@ use std::fs;
 
 use clap::Parser;
 
-mod window;
+mod app;
 mod chip8;
-
-const FREQUENCY: f64 = 1./60.;
+mod consts;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -20,5 +19,5 @@ fn main() {
 
     let mut chip8 = chip8::Chip8::new();
     chip8.load_rom(rom);
-    chip8.launch(FREQUENCY);
+    app::run(chip8);
 }
