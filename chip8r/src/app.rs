@@ -3,6 +3,7 @@ use winit::application::ApplicationHandler;
 use winit::dpi::{LogicalSize, Size};
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::platform::scancode::PhysicalKeyExtScancode;
 use winit::window::{Window, WindowId};
 use std::sync::Arc;
 use std::time;
@@ -77,11 +78,37 @@ impl ApplicationHandler for App {
                     window.request_redraw();
                 }
             },
+            WindowEvent::KeyboardInput { device_id: _, event, is_synthetic: _ } => {
+                match event.physical_key.to_scancode() {
+                    Some(scancode) => {
+                        match scancode {
+                            45 => { self.chip8.set_key(0x0, event.state.is_pressed()); }
+                            02 => { self.chip8.set_key(0x1, event.state.is_pressed()); }
+                            03 => { self.chip8.set_key(0x2, event.state.is_pressed()); }
+                            04 => { self.chip8.set_key(0x3, event.state.is_pressed()); }
+                            16 => { self.chip8.set_key(0x4, event.state.is_pressed()); }
+                            17 => { self.chip8.set_key(0x5, event.state.is_pressed()); }
+                            18 => { self.chip8.set_key(0x6, event.state.is_pressed()); }
+                            30 => { self.chip8.set_key(0x7, event.state.is_pressed()); }
+                            31 => { self.chip8.set_key(0x8, event.state.is_pressed()); }
+                            32 => { self.chip8.set_key(0x9, event.state.is_pressed()); }
+                            44 => { self.chip8.set_key(0xA, event.state.is_pressed()); }
+                            46 => { self.chip8.set_key(0xB, event.state.is_pressed()); }
+                            05 => { self.chip8.set_key(0xC, event.state.is_pressed()); }
+                            19 => { self.chip8.set_key(0xD, event.state.is_pressed()); }
+                            33 => { self.chip8.set_key(0xE, event.state.is_pressed()); }
+                            47 => { self.chip8.set_key(0xF, event.state.is_pressed()); }
+                            _ => {}
+                        }
+                    }
+                    None => {}
+                }
+            },
             _ => (),
         }
     }
 
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         let now = time::Instant::now();
         if now < self.last_tick + time::Duration::from_secs_f32(consts::FREQUENCY) { return; }
         self.last_tick = now;

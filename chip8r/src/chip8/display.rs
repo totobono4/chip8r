@@ -1,4 +1,3 @@
-use simply_colored::*;
 use crate::consts;
 
 pub struct Display {
@@ -26,22 +25,16 @@ impl Display {
     }
 
     pub fn set_sprite(&mut self, x: usize, y: usize, sprite: Vec<u8>) {
-        for index in 0..sprite.len() {
-            let byte = sprite[index];
-
-            self.set_pixel((x+0)%consts::DISPLAY_WIDTH, (y+index)%consts::DISPLAY_HEIGHT, (byte & 0x80) == 0x80);
-            self.set_pixel((x+1)%consts::DISPLAY_WIDTH, (y+index)%consts::DISPLAY_HEIGHT, (byte & 0x40) == 0x40);
-            self.set_pixel((x+2)%consts::DISPLAY_WIDTH, (y+index)%consts::DISPLAY_HEIGHT, (byte & 0x20) == 0x20);
-            self.set_pixel((x+3)%consts::DISPLAY_WIDTH, (y+index)%consts::DISPLAY_HEIGHT, (byte & 0x10) == 0x10);
-            self.set_pixel((x+4)%consts::DISPLAY_WIDTH, (y+index)%consts::DISPLAY_HEIGHT, (byte & 0x08) == 0x08);
-            self.set_pixel((x+5)%consts::DISPLAY_WIDTH, (y+index)%consts::DISPLAY_HEIGHT, (byte & 0x04) == 0x04);
-            self.set_pixel((x+6)%consts::DISPLAY_WIDTH, (y+index)%consts::DISPLAY_HEIGHT, (byte & 0x02) == 0x02);
-            self.set_pixel((x+7)%consts::DISPLAY_WIDTH, (y+index)%consts::DISPLAY_HEIGHT, (byte & 0x01) == 0x01);
+        for i in 0..sprite.len() {
+            let byte = sprite[i];
+            for j in 0..8 {
+                self.set_pixel((x+j)%consts::DISPLAY_WIDTH, (y+i)%consts::DISPLAY_HEIGHT, (byte>>(7-j))%2==1);
+            }
         }
     }
 
     fn set_pixel(&mut self, x: usize, y: usize, value: bool) {
-        self.matrix[x][y] |= value;
+        self.matrix[x][y] ^= value;
     }
 
     pub fn clear(&mut self) {

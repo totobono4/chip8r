@@ -15,14 +15,19 @@ pub struct Chip8 {
 }
 
 impl Chip8 {
-    pub fn new() -> Self {
+    pub fn new(vf_reset: bool, legacy_memory: bool) -> Self {
         Self {
             memory: memory::Memory::new(),
-            cpu: cpu::Cpu::new(),
+            cpu: cpu::Cpu::new(vf_reset, legacy_memory),
             keyboard: keyboard::Keyboard::new(),
             display: display::Display::new(),
             audio: audio::Audio::new(),
         }
+    }
+
+    pub fn _write_arbitrary_byte(&mut self, address: usize, byte: u8) {
+        self.memory.write_byte(address, byte);
+        self.memory._debug(address, address+1);
     }
 
     pub fn load_rom(&mut self, rom: Vec<u8>) {
@@ -30,10 +35,14 @@ impl Chip8 {
     }
 
     pub fn tick(&mut self) {
-        self.cpu.update(&mut self.memory, &mut self.audio, &mut self.display);
+        self.cpu.update(&mut self.memory, &mut self.display, &mut self.keyboard, &mut self.audio);
     }
 
     pub fn get_display_buffer(&mut self) -> [[u8; 4]; consts::DISPLAY_HEIGHT * consts::DISPLAY_WIDTH] {
         self.display.get_display_buffer()
+    }
+
+    pub fn set_key(&mut self, key: usize, is_pressed: bool) {
+        self.keyboard.set_key(key, is_pressed);
     }
 }

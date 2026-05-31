@@ -1,14 +1,14 @@
 use simply_colored::*;
-use rand::prelude::*;
 
 use crate::consts;
 use crate::chip8::memory;
-use crate::chip8::audio;
+use crate::chip8::keyboard;
 use crate::chip8::display;
+use crate::chip8::audio;
 
 pub struct Cpu {
-    program_counter: u16,
-    stack_pointer: u8,
+    pc: u16,
+    sp: u8,
     stack: [u16; 16],
 
     v: [u8; 0x10],
@@ -17,14 +17,16 @@ pub struct Cpu {
     dt: u8,
     st: u8,
 
-    jumped: bool,
+    pc_counting: bool,
+    vf_reset: bool,
+    legacy_memory: bool,
 }
 
 impl Cpu {
-    pub fn new() -> Self {
+    pub fn new(vf_reset: bool, legacy_memory: bool) -> Self {
         Self {
-            program_counter: consts::PROGRAM_START_ADDRESS,
-            stack_pointer: 0,
+            pc: consts::PROGRAM_START_ADDRESS, // program_counter
+            sp: 0, // stack_pointer
             stack: [0; 16],
 
             v: [0; 0x10],
@@ -33,24 +35,26 @@ impl Cpu {
             dt: 0, // delay_timer
             st: 0, // sound_timer
 
-            jumped: false,
+            pc_counting: true,
+            vf_reset,
+            legacy_memory,
         }
     }
 
-    pub fn update(&mut self, memory: &mut memory::Memory, audio: &mut audio::Audio, display: &mut display::Display) {
+    pub fn update(&mut self, memory: &mut memory::Memory, display: &mut display::Display, keyboard: &mut keyboard::Keyboard, audio: &mut audio::Audio,) {
         self.reg_update();
         self.handle_audio(audio);
 
-        if self.program_counter%2 != 0 { self.program_counter += 1; }
-        let opcode = memory.get_opcode(self.program_counter, consts::OPCODE_SIZE);
+        if self.pc%2 != 0 { self.pc += 1; }
+        let opcode = memory.get_opcode(self.pc, consts::OPCODE_SIZE);
 
-        println!("pc:[{:02X?}] v:[{:02X?}] i:[{:03X?}] opcode:[{:04X?}]", self.program_counter, self.v, self.i, opcode);
-        self.process_opcode(opcode, memory, display);
-        if !self.jumped { self.program_counter += 2; }
-        self.jumped = false;
+        // println!("pc:[{:02X?}] v:[{:02X?}] i:[{:03X?}] opcode:[{:04X?}]", self.pc, self.v, self.i, opcode);
+        self.process_opcode(opcode, memory, keyboard, display);
+        if self.pc_counting { self.pc += 2; }
+        self.pc_counting = true;
     }
 
-    fn process_opcode(&mut self, opcode: u16, memory: &mut memory::Memory, display: &mut display::Display) {
+    fn process_opcode(&mut self, opcode: u16, memory: &mut memory::Memory, keyboard: &mut keyboard::Keyboard, display: &mut display::Display) {
         let nnn = opcode & 0x0FFF;
         let n = (opcode & 0x000F) as u8;
         let x = ((opcode & 0x0F00) >> 8) as usize;
@@ -64,34 +68,33 @@ impl Cpu {
                         display.clear();
                     }
                     0xEE => {
-                        self.stack_pointer -= 1;
-                        self.program_counter = self.stack[self.stack_pointer as usize];
-                        self.jumped = true;
+                        self.sp -= 1;
+                        self.pc = self.stack[self.sp as usize];
                     }
                     _ => { Self::not_implemented_opcode(opcode); }
                 }
             }
             0x1 => {
-                self.program_counter = nnn;
-                self.jumped = true;
+                self.pc = nnn;
+                self.pc_counting = false;
             }
             0x2 => {
-                self.stack[self.stack_pointer as usize] = self.program_counter;
-                self.stack_pointer += 1;
-                self.program_counter = nnn;
-                self.jumped = true;
+                self.stack[self.sp as usize] = self.pc;
+                self.sp += 1;
+                self.pc = nnn;
+                self.pc_counting = false;
             }
             0x3 => {
                 if self.v[x] != kk { return; }
-                self.program_counter += 2;
+                self.pc += 2;
             }
             0x4 => {
                 if self.v[x] == kk { return; }
-                self.program_counter += 2;
+                self.pc += 2;
             }
             0x5 => {
                 if self.v[x] != self.v[y] { return; }
-                self.program_counter += 2;
+                self.pc += 2;
             }
             0x6 => {
                 self.v[x] = kk;
@@ -106,12 +109,15 @@ impl Cpu {
                     }
                     0x1 => {
                         self.v[x] |= self.v[y];
+                        if self.vf_reset { self.v[0xF] = 0x0; }
                     }
                     0x2 => {
                         self.v[x] &= self.v[y];
+                        if self.vf_reset { self.v[0xF] = 0x0; }
                     }
                     0x3 => {
                         self.v[x] ^= self.v[y];
+                        if self.vf_reset { self.v[0xF] = 0x0; }
                     }
                     0x4 => {
                         let res: u16 = self.v[x] as u16 + self.v[y] as u16;
@@ -119,38 +125,40 @@ impl Cpu {
                         self.v[0xF] = (res >> 8) as u8;
                     }
                     0x5 => {
-                        let cond = self.v[x] > self.v[y];
-                        if cond { self.v[x] -= self.v[y]; }
-                        else { self.v[y] -= self.v[x]; }
-                        self.v[0xF] = cond as u8;
+                        let res = self.v[x] as i16 - self.v[y] as i16;
+                        self.v[x] = res as u8;
+                        if res < 0 { self.v[0xF] = 0; }
+                        else { self.v[0xF] = 1; }
                     }
                     0x6 => {
-                        self.v[0xF] = self.v[x] & 0x01;
+                        let flag = self.v[x] & 0x01;
                         self.v[x] >>= 1;
+                        self.v[0xF] = flag;
                     }
                     0x7 => {
-                        let cond = self.v[y] > self.v[x];
-                        if cond { self.v[y] -= self.v[x]; }
-                        else { self.v[x] -= self.v[y]; }
-                        self.v[0xF] = cond as u8;
+                        let res = self.v[y] as i16 - self.v[x] as i16;
+                        self.v[x] = res as u8;
+                        if res < 0 { self.v[0xF] = 0; }
+                        else { self.v[0xF] = 1; }
                     }
                     0xE => {
-                        self.v[0xF] = self.v[x] >> 7;
+                        let flag = self.v[x] >> 7;
                         self.v[x] <<= 1;
+                        self.v[0xF] = flag;
                     }
                     _ => { Self::not_implemented_opcode(opcode); }
                 }
             }
             0x9 => {
                 if self.v[x] == self.v[y] { return; }
-                self.program_counter += 2;
+                self.pc += 2;
             }
             0xA => {
                 self.i = nnn;
             }
             0xB => {
-                self.program_counter = nnn + self.v[0x0] as u16;
-                self.jumped = true;
+                self.pc = nnn + self.v[0x0] as u16;
+                self.pc_counting = false;
             }
             0xC => {
                 self.v[x] = rand::random_range(0x0..=0xFF) & kk;
@@ -160,7 +168,15 @@ impl Cpu {
                 display.set_sprite(self.v[x] as usize, self.v[y] as usize, sprite);
             }
             0xE => {
-                match (opcode & 0x0F) as u8 {
+                match (opcode & 0xFF) as u8 {
+                    0x9E => {
+                        if !keyboard.is_key_pressed(self.v[x] as usize) { return; }
+                        self.pc += 2;
+                    }
+                    0xA1 => {
+                        if keyboard.is_key_pressed(self.v[x] as usize) { return; }
+                        self.pc += 2;
+                    }
                     _ => { Self::not_implemented_opcode(opcode); }
                 }
             }
@@ -170,7 +186,13 @@ impl Cpu {
                         self.v[x] = self.dt;
                     }
                     0x0A => {
-                        Self::not_implemented_opcode(opcode);
+                        let mut key_pressed = false;
+                        for i in 0x0..0xF {
+                            if !keyboard.is_key_pressed(i) { continue; }
+                            key_pressed = true;
+                            self.v[x] = i as u8;
+                        }
+                        if !key_pressed { self.pc_counting = false; }
                     }
                     0x15 => {
                         self.dt = self.v[x];
@@ -186,16 +208,18 @@ impl Cpu {
                     }
                     0x33 => {
                         let dec = self.v[x];
-                        memory.load_data(self.i as usize, [dec/100%10, dec/10%10, dec%10].to_vec());
+                        memory.write_data(self.i as usize, [(dec/100)%10, (dec/10)%10, dec%10].to_vec());
                     }
                     0x55 => {
-                        memory.load_data(self.i as usize, self.v[0..=x].to_vec());
+                        memory.write_data(self.i as usize, self.v[0..=x].to_vec());
+                        if self.legacy_memory { self.i += x as u16 +1; }
                     }
                     0x65 => {
-                        let vec_data = memory.get_data(self.i as usize, x);
-                        for index in 0..x {
+                        let vec_data = memory.get_data(self.i as usize, x+1);
+                        for index in 0..=x {
                             self.v[index] = vec_data[index];
                         }
+                        if self.legacy_memory { self.i += x as u16 +1; }
                     }
                     _ => { Self::not_implemented_opcode(opcode); }
                 }

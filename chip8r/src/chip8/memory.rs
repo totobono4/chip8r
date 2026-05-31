@@ -28,25 +28,29 @@ impl Memory {
     }
 
     fn load_font(&mut self) {
-        self.load_data(0x00, consts::FONT.to_vec());
+        self.write_data(0x00, consts::FONT.to_vec());
     }
 
     pub fn load_rom(&mut self, rom: Vec<u8>) {
-        self.load_data(consts::PROGRAM_START_ADDRESS as usize, rom);
+        self.write_data(consts::PROGRAM_START_ADDRESS as usize, rom);
     }
 
-    pub fn load_data(&mut self, start: usize, data: Vec<u8>) {
+    pub fn write_data(&mut self, start: usize, data: Vec<u8>) {
         let size = data.len();
-        let end = start + size;
+        let _end = start + size;
         for index in 0x00..size {
-            self.ram[start + index] = data[index];
+            self.write_byte(start + index, data[index]);
         }
 
-        println!("Added some data to the rom between 0x{:02X} and 0x{:02X} adresses:", start, end);
-        self._debug(start, end);
+        // println!("Added some data to the rom between 0x{:02X} and 0x{:02X} adresses:", start, _end);
+        // self._debug(start, _end);
     }
 
-    fn _debug(&self, start: usize, end: usize) {
+    pub fn write_byte(&mut self, address : usize, byte: u8) {
+        self.ram[address] = byte;
+    }
+
+    pub fn _debug(&self, start: usize, end: usize) {
         if start >= self.ram.len() || end >= self.ram.len() { return; }
         let byte_start = start & 0xFF0;
         let byte_end = end + 0x00F & 0xFF0;
