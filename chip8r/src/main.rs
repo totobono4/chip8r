@@ -15,7 +15,13 @@ struct Args {
     #[arg(short, long, default_value_t = false)]
     vf_reset: bool,
     #[arg(short, long, default_value_t = false)]
-    legacy_memory: bool
+    memory: bool,
+    #[arg(short, long, default_value_t = false)]
+    clipping: bool,
+    #[arg(short, long, default_value_t = false)]
+    shifting: bool,
+    #[arg(short, long, default_value_t = false)]
+    jumping: bool,
 }
 
 fn main() {
@@ -23,9 +29,12 @@ fn main() {
     let rom = fs::read(args.rom).unwrap();
 
     let vf_reset = args.vf_reset;
-    let legacy_memory = args.legacy_memory;
+    let memory = args.memory;
+    let clipping = args.clipping;
+    let shifting = args.shifting;
+    let jumping = args.jumping;
 
-    let mut chip8 = chip8::Chip8::new(vf_reset, legacy_memory);
+    let mut chip8 = chip8::Chip8::new(vf_reset, memory, clipping, shifting, jumping);
     chip8._write_arbitrary_byte(0x1FF, 0x1);
 
     chip8.load_rom(rom);

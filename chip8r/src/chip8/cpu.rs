@@ -19,11 +19,14 @@ pub struct Cpu {
 
     pc_counting: bool,
     vf_reset: bool,
-    legacy_memory: bool,
+    memory: bool,
+    clipping: bool,
+    shifting: bool,
+    jumping: bool,
 }
 
 impl Cpu {
-    pub fn new(vf_reset: bool, legacy_memory: bool) -> Self {
+    pub fn new(vf_reset: bool, memory: bool, clipping: bool, shifting: bool, jumping: bool) -> Self {
         Self {
             pc: consts::PROGRAM_START_ADDRESS, // program_counter
             sp: 0, // stack_pointer
@@ -36,8 +39,12 @@ impl Cpu {
             st: 0, // sound_timer
 
             pc_counting: true,
+
             vf_reset,
-            legacy_memory,
+            memory,
+            clipping,
+            shifting,
+            jumping,
         }
     }
 
@@ -131,6 +138,7 @@ impl Cpu {
                         else { self.v[0xF] = 1; }
                     }
                     0x6 => {
+                        if !self.shifting { self.v[x] = self.v[y]; }
                         let flag = self.v[x] & 0x01;
                         self.v[x] >>= 1;
                         self.v[0xF] = flag;
@@ -142,6 +150,7 @@ impl Cpu {
                         else { self.v[0xF] = 1; }
                     }
                     0xE => {
+                        if !self.shifting { self.v[x] = self.v[y]; }
                         let flag = self.v[x] >> 7;
                         self.v[x] <<= 1;
                         self.v[0xF] = flag;
@@ -157,7 +166,8 @@ impl Cpu {
                 self.i = nnn;
             }
             0xB => {
-                self.pc = nnn + self.v[0x0] as u16;
+                if !self.jumping { self.pc = nnn + self.v[0x0] as u16; }
+                else { self.pc = nnn + self.v[x] as u16; }
                 self.pc_counting = false;
             }
             0xC => {
@@ -165,7 +175,10 @@ impl Cpu {
             }
             0xD => {
                 let sprite = memory.get_data(self.i as usize, n as usize);
-                display.set_sprite(self.v[x] as usize, self.v[y] as usize, sprite);
+                let x_coord = self.v[x] as usize % consts::DISPLAY_WIDTH;
+                let y_coord = self.v[y] as usize % consts::DISPLAY_HEIGHT;
+                if display.draw_sprite(x_coord, y_coord, sprite, self.clipping) { self.v[0xF] = 1; }
+                else { self.v[0xF] = 0; }
             }
             0xE => {
                 match (opcode & 0xFF) as u8 {
@@ -212,14 +225,14 @@ impl Cpu {
                     }
                     0x55 => {
                         memory.write_data(self.i as usize, self.v[0..=x].to_vec());
-                        if self.legacy_memory { self.i += x as u16 +1; }
+                        if self.memory { self.i += x as u16 +1; }
                     }
                     0x65 => {
                         let vec_data = memory.get_data(self.i as usize, x+1);
                         for index in 0..=x {
                             self.v[index] = vec_data[index];
                         }
-                        if self.legacy_memory { self.i += x as u16 +1; }
+                        if self.memory { self.i += x as u16 +1; }
                     }
                     _ => { Self::not_implemented_opcode(opcode); }
                 }

@@ -1,7 +1,7 @@
 use rodio::{MixerDeviceSink, Player};
 use rodio::source::{SineWave, Source};
 
-const WAVE_FREQUENCY: f32 = 440.0;
+const WAVE_FREQUENCY: f32 = 432.0;
 const WAVE_AMPLIFICATION: f32 = 0.20;
 
 pub struct Audio {

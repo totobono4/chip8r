@@ -24,17 +24,29 @@ impl Display {
         display_buffer
     }
 
-    pub fn set_sprite(&mut self, x: usize, y: usize, sprite: Vec<u8>) {
+    pub fn draw_sprite(&mut self, x: usize, y: usize, sprite: Vec<u8>, clipping: bool) -> bool {
+        let mut overlapped = false;
         for i in 0..sprite.len() {
             let byte = sprite[i];
             for j in 0..8 {
-                self.set_pixel((x+j)%consts::DISPLAY_WIDTH, (y+i)%consts::DISPLAY_HEIGHT, (byte>>(7-j))%2==1);
+                let mut x_coord = x+j;
+                let mut y_coord = y+i;
+                if !clipping {
+                    x_coord %= consts::DISPLAY_WIDTH;
+                    y_coord %= consts::DISPLAY_HEIGHT;
+                }
+                if x_coord >= consts::DISPLAY_WIDTH { continue; }
+                if y_coord >= consts::DISPLAY_HEIGHT { continue; }
+                overlapped |= self.draw_pixel(x_coord, y_coord, (byte>>(7-j))%2==1);
             }
         }
+        overlapped
     }
 
-    fn set_pixel(&mut self, x: usize, y: usize, value: bool) {
+    fn draw_pixel(&mut self, x: usize, y: usize, value: bool) -> bool {
+        let overlapped = self.matrix[x][y] & value;
         self.matrix[x][y] ^= value;
+        overlapped
     }
 
     pub fn clear(&mut self) {

@@ -15,10 +15,10 @@ pub struct Chip8 {
 }
 
 impl Chip8 {
-    pub fn new(vf_reset: bool, legacy_memory: bool) -> Self {
+    pub fn new(vf_reset: bool, memory: bool, clipping: bool, shifting: bool, jumping: bool) -> Self {
         Self {
             memory: memory::Memory::new(),
-            cpu: cpu::Cpu::new(vf_reset, legacy_memory),
+            cpu: cpu::Cpu::new(vf_reset, memory, clipping, shifting, jumping),
             keyboard: keyboard::Keyboard::new(),
             display: display::Display::new(),
             audio: audio::Audio::new(),
