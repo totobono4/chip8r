@@ -12,18 +12,18 @@ struct Args {
     #[arg(short, long)]
     rom: String,
 
-    #[arg(long, default_value_t = false)]
+    #[arg(long, default_value_t = false, help = "start with original chip8 quirks (vf-reset+memory+clipping)")]
     chip8: bool,
-    
-    #[arg(short, long, default_value_t = false)]
+
+    #[arg(short, long, default_value_t = false, help = "quirk: jumping resets the VF flag in instructions 8XY1, 8XY2, 8XY3.")]
     vf_reset: bool,
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false, help = "quirk: I gets incremented by X in instructions FX55, FX65.")]
     memory: bool,
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false, help = "quirk: sprites are clipping instead of wrapping at screen bottom.")]
     clipping: bool,
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false, help = "quirk: VX shifts itself instead of shifting from VY in instructions 8XY6 and 8XYE.")]
     shifting: bool,
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false, help = "quirk: jumps to NNN + VX instead of NNN + V0 in instruction BNNN.")]
     jumping: bool,
 }
 
