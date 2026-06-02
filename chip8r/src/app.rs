@@ -21,6 +21,7 @@ struct App {
     chip8: chip8::Chip8,
     last_tick: time::Instant,
     last_draw: time::Instant,
+    draw_next_frame: bool,
 }
 
 impl App {
@@ -31,6 +32,7 @@ impl App {
             chip8: chip8,
             last_tick: time::Instant::now(),
             last_draw: time::Instant::now(),
+            draw_next_frame: false,
         }
     }
 
@@ -46,6 +48,7 @@ impl App {
         let now = time::Instant::now();
         if now < self.last_draw + time::Duration::from_secs_f32(consts::DISPLAY_FREQUENCY) { return; }
         self.last_draw = now;
+        self.draw_next_frame = false;
 
         match &self.window {
             Some(window) => {
@@ -130,7 +133,8 @@ impl ApplicationHandler for App {
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         self.handle_cpu();
-        if self.chip8.has_drawn() { self.handle_display(); }
+        if self.chip8.has_drawn() { self.draw_next_frame = true; }
+        if self.draw_next_frame { self.handle_display(); }
     }
 }
 

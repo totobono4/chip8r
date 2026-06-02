@@ -9,7 +9,7 @@ mod consts;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long)]
+    #[arg(short, long, help = "path to a chip8 rom.")]
     rom: String,
 
     #[arg(long, default_value_t = false, help = "start with original chip8 quirks (vf-reset+memory+clipping)")]
