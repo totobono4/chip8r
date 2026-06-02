@@ -16,15 +16,8 @@ impl Memory {
     }
 
     pub fn get_opcode(&mut self, program_counter : u16, opcode_size: usize) -> u16 {
-        let opcode_datas = self.get_data(program_counter as usize, opcode_size).clone();
+        let opcode_datas = self.read_data(program_counter as usize, opcode_size).clone();
         u16::from_be_bytes([opcode_datas[0], opcode_datas[1]])
-    }
-
-    pub fn get_data(&mut self, adress: usize, size: usize) -> Vec<u8> {
-        let start = adress;
-        let end = start + size;
-        let data = self.ram[start..end].to_vec();
-        data
     }
 
     fn load_font(&mut self) {
@@ -35,18 +28,23 @@ impl Memory {
         self.write_data(consts::PROGRAM_START_ADDRESS as usize, rom);
     }
 
+    pub fn read_data(&mut self, adress: usize, size: usize) -> Vec<u8> {
+        let start = adress;
+        let end = start + size;
+
+        let data = self.ram[start..end].to_vec();
+        data
+    }
+
     pub fn write_data(&mut self, start: usize, data: Vec<u8>) {
         let size = data.len();
         let _end = start + size;
         for index in 0x00..size {
             self.write_byte(start + index, data[index]);
         }
-
-        // println!("Added some data to the rom between 0x{:02X} and 0x{:02X} adresses:", start, _end);
-        // self._debug(start, _end);
     }
 
-    pub fn write_byte(&mut self, address : usize, byte: u8) {
+    pub fn write_byte(&mut self, address: usize, byte: u8) {
         self.ram[address] = byte;
     }
 

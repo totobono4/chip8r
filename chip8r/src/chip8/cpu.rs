@@ -174,7 +174,7 @@ impl Cpu {
                 self.v[x] = rand::random_range(0x0..=0xFF) & kk;
             }
             0xD => {
-                let sprite = memory.get_data(self.i as usize, n as usize);
+                let sprite = memory.read_data(self.i as usize, n as usize);
                 let x_coord = self.v[x] as usize % consts::DISPLAY_WIDTH;
                 let y_coord = self.v[y] as usize % consts::DISPLAY_HEIGHT;
                 if display.draw_sprite(x_coord, y_coord, sprite, self.clipping) { self.v[0xF] = 1; }
@@ -217,7 +217,7 @@ impl Cpu {
                         self.i += self.v[x] as u16;
                     }
                     0x29 => {
-                        self.i = self.v[x] as u16;
+                        self.i = self.v[x] as u16 * 5;
                     }
                     0x33 => {
                         let dec = self.v[x];
@@ -228,7 +228,7 @@ impl Cpu {
                         if self.memory { self.i += x as u16 +1; }
                     }
                     0x65 => {
-                        let vec_data = memory.get_data(self.i as usize, x+1);
+                        let vec_data = memory.read_data(self.i as usize, x+1);
                         for index in 0..=x {
                             self.v[index] = vec_data[index];
                         }
