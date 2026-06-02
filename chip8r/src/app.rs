@@ -130,7 +130,7 @@ impl ApplicationHandler for App {
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         self.handle_cpu();
-        self.handle_display();
+        if self.chip8.has_drawn() { self.handle_display(); }
     }
 }
 

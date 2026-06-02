@@ -38,6 +38,10 @@ impl Chip8 {
         self.cpu.update(&mut self.memory, &mut self.display, &mut self.keyboard, &mut self.audio);
     }
 
+    pub fn has_drawn(&mut self) -> bool {
+        self.cpu.has_drawn
+    }
+
     pub fn get_display_buffer(&mut self) -> [[u8; 4]; consts::DISPLAY_HEIGHT * consts::DISPLAY_WIDTH] {
         self.display.get_display_buffer()
     }

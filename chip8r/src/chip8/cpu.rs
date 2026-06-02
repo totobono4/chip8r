@@ -23,6 +23,8 @@ pub struct Cpu {
     clipping: bool,
     shifting: bool,
     jumping: bool,
+
+    pub has_drawn: bool,
 }
 
 impl Cpu {
@@ -45,10 +47,13 @@ impl Cpu {
             clipping,
             shifting,
             jumping,
+
+            has_drawn: false,
         }
     }
 
     pub fn update(&mut self, memory: &mut memory::Memory, display: &mut display::Display, keyboard: &mut keyboard::Keyboard, audio: &mut audio::Audio,) {
+        self.has_drawn = false;
         self.reg_update();
         self.handle_audio(audio);
 
@@ -179,6 +184,7 @@ impl Cpu {
                 let y_coord = self.v[y] as usize % consts::DISPLAY_HEIGHT;
                 if display.draw_sprite(x_coord, y_coord, sprite, self.clipping) { self.v[0xF] = 1; }
                 else { self.v[0xF] = 0; }
+                self.has_drawn = true;
             }
             0xE => {
                 match (opcode & 0xFF) as u8 {
