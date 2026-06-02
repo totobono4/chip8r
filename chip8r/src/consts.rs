@@ -1,4 +1,5 @@
-pub const FREQUENCY: f32 = 1./60.;
+pub const DISPLAY_FREQUENCY: f32 = 1./60.;
+pub const CPU_FREQUENCY: f32 = (1./8.)/60.;
 
 pub const PROGRAM_START_ADDRESS: u16 = 0x200;
 pub const OPCODE_SIZE: usize = 2;

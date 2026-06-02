@@ -20,6 +20,7 @@ struct App {
     pixels: Option<Pixels<'static>>,
     chip8: chip8::Chip8,
     last_tick: time::Instant,
+    last_draw: time::Instant,
 }
 
 impl App {
@@ -29,6 +30,28 @@ impl App {
             pixels: None,
             chip8: chip8,
             last_tick: time::Instant::now(),
+            last_draw: time::Instant::now(),
+        }
+    }
+
+    pub fn handle_cpu(&mut self) {
+        let now = time::Instant::now();
+        if now < self.last_tick + time::Duration::from_secs_f32(consts::CPU_FREQUENCY) { return; }
+        self.last_tick = now;
+
+        self.chip8.tick();
+    }
+
+    pub fn handle_display(&mut self) {
+        let now = time::Instant::now();
+        if now < self.last_draw + time::Duration::from_secs_f32(consts::DISPLAY_FREQUENCY) { return; }
+        self.last_draw = now;
+
+        match &self.window {
+            Some(window) => {
+                window.request_redraw();
+            }
+            None => {}
         }
     }
 }
@@ -74,9 +97,6 @@ impl ApplicationHandler for App {
                     }
                     pixels.render().unwrap();
                 }
-                if let Some(window) = &self.window {
-                    window.request_redraw();
-                }
             },
             WindowEvent::KeyboardInput { device_id: _, event, is_synthetic: _ } => {
                 match event.physical_key.to_scancode() {
@@ -109,10 +129,8 @@ impl ApplicationHandler for App {
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        let now = time::Instant::now();
-        if now < self.last_tick + time::Duration::from_secs_f32(consts::FREQUENCY) { return; }
-        self.last_tick = now;
-        self.chip8.tick();
+        self.handle_cpu();
+        self.handle_display();
     }
 }
 
